@@ -57,49 +57,6 @@ class DQN(object):
         self.loss_func = nn.MSELoss()
         self.loss_func.cuda()
 
-    def choose_action(self, player, ting, pattern_to_playcards, follow=False, ways_toplay=[]):
-        current_player_cards = player.cards
-        current_player_cards_used = player.cards_used
-        next_player = player.get_next_player()
-        next_next_player = next_player.get_next_player()
-        next_player_cards_used = next_player.cards_used
-        next_next_player_cards_used = next_next_player.cards_used
-        biggest_w = 0
-        biggest_p = 0
-        biggest_temp = 0
-        ways_list = []
-        lp = len(pattern_to_playcards)
-        for p in range(lp):
-            if not follow:
-                ways_toplay = player.search_play_methods(pattern_to_playcards[p])
-            ways_list.append(ways_toplay)
-            if len(ways_toplay) == 0:
-                return []
-            lw = len(ways_toplay)
-            for w in range(lw):
-                way_to_play_small_extend = get_cards_small_extend(ways_toplay[w], pattern_to_playcards[p])
-                current_player_cards_small = trans_vector(current_player_cards)
-                cards_left = original_vec - current_player_cards_used - next_player_cards_used - next_next_player_cards_used - current_player_cards_small
-                input = np.concatenate((way_to_play_small_extend, current_player_cards_small,
-                                        current_player_cards_used, next_player_cards_used,
-                                        next_next_player_cards_used, cards_left, ting), axis=0)
-                input = torch.from_numpy(input).float().cuda()
-                temp = self.eval_net(input)
-                if temp >= biggest_temp:
-                    biggest_w = w
-                    biggest_p = p
-                    biggest_temp = temp
-        if np.random.uniform() > EPSILON:  # greedy
-            biggest_p = np.random.randint(0, lp)
-            lw = len(ways_list[biggest_p])
-            biggest_w = np.random.randint(0, lw)
-        output_cards = ways_list[biggest_p][biggest_w]
-        output_pattern = pattern_to_playcards[biggest_p]
-        output_Q = biggest_temp
-        if type(output_cards) == int:
-            output_cards = [output_cards]
-        return output_cards, output_pattern, output_Q
-
     def learn(self):
         # double Q-learning for TD methods setting, useless in MC methods
         # target parameter update
@@ -136,10 +93,75 @@ class DQN(object):
         loss.backward()
         self.optimizer.step()
 
+    def choose_action(self, player, ways_toplay=[]):
+
+        # get info from current player
+        current_player_cards = player.cards
+        current_player_cards_used = player.cards_used
+        next_player = player.get_next_player()
+        next_next_player = next_player.get_next_player()
+        next_player_cards_used = next_player.cards_used
+        next_next_player_cards_used = next_next_player.cards_used
+        status = player.status
+        if status == np.array([0]):
+            pattern_to_playcards = [player.current_pattern]
+        else:
+            pattern_to_playcards = player.search_pattern()
+
+        biggest_w = 0
+        biggest_p = 0
+        biggest_temp = 0
+        ways_list = []
+        lp = len(pattern_to_playcards)
+        for p in range(lp):
+            if status == np.array([1]):
+                ways_toplay = player.search_play_methods(pattern_to_playcards[p])
+                if len(ways_toplay) == 0:
+                    return []
+            ways_list.append(ways_toplay)
+
+            lw = len(ways_toplay)
+            for w in range(lw):
+                way_to_play_small_extend = get_cards_small_extend(ways_toplay[w], pattern_to_playcards[p])
+                current_player_cards_small = trans_vector(current_player_cards)
+                cards_left = original_vec - current_player_cards_used - next_player_cards_used - next_next_player_cards_used - current_player_cards_small
+                input = np.concatenate((way_to_play_small_extend, current_player_cards_small,
+                                        current_player_cards_used, next_player_cards_used,
+                                        next_next_player_cards_used, cards_left, status), axis=0)
+                input = torch.from_numpy(input).float().cuda()
+                # temp = self.eval_net(input)
+                temp = self.eval_net.forward(input)
+                if temp >= biggest_temp:
+                    biggest_w = w
+                    biggest_p = p
+                    biggest_temp = temp
+        if np.random.uniform() > EPSILON:  # greedy
+            biggest_p = np.random.randint(0, lp)
+            lw = len(ways_list[biggest_p])
+            biggest_w = np.random.randint(0, lw)
+        action_cards = ways_list[biggest_p][biggest_w]
+        player.current_pattern = pattern_to_playcards[biggest_p]
+        # action_Q = biggest_temp
+        if type(action_cards) == int:
+            action_cards = [action_cards]
+        return action_cards
+
     # 每次出牌结束，存储当时的局面s和出牌a, 和 ABC的位置, 每局结束时, 根据 ABC 的位置去分配奖励reward
-    def store_transition(self, cards, cards_inhand, cards_used, next_cards_used, next_next_cards_used, current_position, ting, pattern):
+    def store_transition(self, player, action_cards):
         original_vec = np.array([4,4,4,4,4,4,4,4,4,4,4,3,1])
-        cards_small = trans_vector(cards)
+        cards_small = trans_vector(action_cards)
+
+        # get info from current player.
+        cards_used = player.cards_used
+        cards_inhand = player.cards
+        next_player = player.get_next_player()
+        next_next_player = next_player.get_next_player()
+        next_cards_used = next_player.cards_used
+        next_next_cards_used = next_next_player.cards_used
+        current_position = player.position
+        status = player.status
+        pattern = player.current_pattern
+
         cards_left = original_vec - cards_used - next_cards_used - next_next_cards_used - cards_small
         if current_position == 'player_A':
             position = 1
@@ -147,18 +169,27 @@ class DQN(object):
             position = 2
         if current_position == 'player_C':
             position = 3
-        cards_small_extend = get_cards_small_extend(cards, pattern)
+        cards_small_extend = get_cards_small_extend(action_cards, pattern)
         cards_inhand_small = trans_vector(cards_inhand)
         position = np.array([position])
         flag = np.array([0])
-        input = np.concatenate((position, cards_small_extend, cards_inhand_small, cards_used, next_cards_used, next_next_cards_used, cards_left, ting, flag), axis=0)
+        input = np.concatenate((position, cards_small_extend, cards_inhand_small, cards_used, next_cards_used, next_next_cards_used, cards_left, status, flag), axis=0)
         # replace the old memory with new memory
         index = self.memory_counter % MEMORY_CAPACITY
         self.memory[index, :] = input
         self.memory_counter += 1
 
     # 每局游戏结束，为训练标签添加奖励
-    def add_reward(self, winner, loser_one, loser_two, loser_one_cards, loser_two_cards, player_A, player_B, player_C):
+    def add_reward(self, player, player_A, player_B, player_C):
+
+        # get info from current player
+        winner = player.position
+        next_player = player.get_next_player()
+        next_next_player = next_player.get_next_player()
+        loser_one = next_player.position
+        loser_two = next_next_player.position
+        loser_one_cards = next_player.cards
+        loser_two_cards = next_next_player.cards
 
         # boom_success 表示成功出炸弹次数，根据规则每次成功出炸弹，出牌者奖励为20，另外两人奖励为-10
         if winner == 'player_A':

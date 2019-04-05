@@ -13,6 +13,8 @@ class RunfastGameEnv():
         self.set_dict()
         self.cards_used = np.zeros(13)
         self.boom_success = 0
+        self.status = np.array([0])
+        self.current_pattern = 0
 
     def set_dict(self):
         number2card = {}

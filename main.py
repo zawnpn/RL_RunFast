@@ -82,43 +82,42 @@ if __name__ == '__main__':
         while(isEnd==False ):
 
             if current_player == privious_player:
+                current_player.status = np.array([1])
                 # record who play boom（炸弹） and boom_success+1
                 if len(biggestcards) == 4:
                     if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                         current_player.boom_success = current_player.boom_success + 1
                 current_player.show_cards()
-                ##### 停牌阶段展示一下各家手牌
+
+                # 停牌阶段展示一下各家手牌
                 temp = current_player.get_next_player()
                 temp.show_cards()
                 temp = temp.get_next_player()
                 temp.show_cards()
                 biggestcards = []
-                pattern_to_playcards = current_player.search_pattern()
-                ting = np.array([1])
-                cards, current_pattern, _ = RL.choose_action(current_player, ting, pattern_to_playcards)
-                small_cards = trans_vector(cards)
+
+                # choose Action from State.
+                action_cards = RL.choose_action(current_player)
+
+                # implement Action
+                small_cards = trans_vector(action_cards)
                 current_player.cards_used = current_player.cards_used + small_cards
-                biggestcards = cards
+                biggestcards = action_cards
                 if len(biggestcards)==4 and int(biggestcards[0]/4)==int(biggestcards[3]/4):
                     if int(biggestcards[0]/4)==int(biggestcards[3]/4) and (biggestcards[0]/4<11):
-                        current_pattern = 3
+                        current_player.current_pattern = 3
 
-                #打出手牌
-                ## Q-learning, store situation and cards in hand
-                next_player = current_player.get_next_player()
-                next_next_player = next_player.get_next_player()
-                ting = np.array([1])
-                RL.store_transition(cards, current_player.cards, current_player.cards_used, next_player.cards_used,
-                                 next_next_player.cards_used, current_player.position, ting, current_pattern)
-                ## Q-learning, store situation and cards in hand
-                isEnd = current_player.play_cards(cards)
+                RL.store_transition(current_player, action_cards)
+
+                isEnd = current_player.play_cards(action_cards)
+                current_pattern = current_player.current_pattern
                 ## Q-learning, calculate reward and add reward
                 if isEnd:
                     # record that if the cards played lastest are boom
                     if len(biggestcards) == 4:
                         if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                             current_player.boom_success = current_player.boom_success + 1
-                    RL.add_reward(current_player.position, next_player.position, next_next_player.position, next_player.cards, next_next_player.cards, player_A, player_B, player_C)
+                    RL.add_reward(current_player, player_A, player_B, player_C)
                 ## Q-learning, calculate reward and add reward
                 if isEnd:
                     print("player_A remains " + str(len(player_A.cards)) + " cards.")
@@ -141,37 +140,34 @@ if __name__ == '__main__':
                     current_player = current_player.get_next_player()
 
             else:
+                current_player.current_pattern = current_pattern
                 ways_toplay = current_player.search_play_methods(current_pattern, biggestcards)
                 if len(ways_toplay)==0:
                     print(current_player.get_position() + '要不起！')
                     current_player = current_player.get_next_player()
                 else:
-                    ting = np.array([0])
-                    cards, _, _ = RL.choose_action(current_player, ting, [current_pattern], follow=True, ways_toplay=ways_toplay)
-                    small_cards = trans_vector(cards)
+                    current_player.status = np.array([0])
+                    action_cards = RL.choose_action(current_player, ways_toplay=ways_toplay)
+                    small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
 
-                    biggestcards = cards
+                    biggestcards = action_cards
                     if len(biggestcards) == 4:
                         if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                             current_pattern = 3
                     privious_player = current_player
 
                     ## Q-learning, store situation and cards in hand
-                    next_player = current_player.get_next_player()
-                    next_next_player = next_player.get_next_player()
-                    ting = np.array([0])
-                    RL.store_transition(cards, current_player.cards, current_player.cards_used, next_player.cards_used,
-                                         next_next_player.cards_used, current_player.position, ting, current_pattern)
+                    RL.store_transition(current_player, action_cards)
                     ## Q-learning, store situation and cards in hand
-                    isEnd = current_player.play_cards(cards)
+                    isEnd = current_player.play_cards(action_cards)
+                    # current_pattern = current_player.current_pattern
                     ## Q-learning, calculate reward and add reward,winner reward = 1,loser = 0
                     if isEnd:
                         if len(biggestcards) == 4:
                             if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                                 current_player.boom_success = current_player.boom_success + 1
-                        RL.add_reward(current_player.position, next_player.position, next_next_player.position, next_player.cards,
-                                       next_next_player.cards, player_A, player_B, player_C)
+                        RL.add_reward(current_player, player_A, player_B, player_C)
                     ## Q-learning, calculate reward and add reward
 
                     if isEnd:
