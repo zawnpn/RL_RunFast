@@ -1,6 +1,8 @@
 import numpy as np
 import random
 import copy
+# utils
+from extra.utils import trans_vector, get_cards_small_extend, calculate_score
 
 
 class RunfastGameEnv():
@@ -15,6 +17,21 @@ class RunfastGameEnv():
         self.boom_success = 0
         self.status = np.array([0])
         self.current_pattern = 0
+
+    def get_state(self):
+        original_vec = np.array([4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 1])
+        cards_used = self.cards_used
+        cards_inhand = self.cards
+        cards_inhand_small = trans_vector(cards_inhand)
+        next_player = self.get_next_player()
+        next_next_player = next_player.get_next_player()
+        next_cards_used = next_player.cards_used
+        next_next_cards_used = next_next_player.cards_used
+        status = self.status
+        cards_left = original_vec - cards_used - next_cards_used - next_next_cards_used
+        state = np.concatenate((cards_inhand_small, cards_used, next_cards_used,
+                                next_next_cards_used, cards_left, status), axis=0)
+        return state
 
     def set_dict(self):
         number2card = {}
@@ -683,19 +700,19 @@ class RunfastGameEnv():
 
         return way_to_playcards
 
-    def play_cards(self, cards_toplay, notTry=True):
+    def play_cards(self, cards_toplay, test=False):
         if len(cards_toplay)==0:
-            if notTry:
+            if test:
                 print(self.position + '要不起！')
             return False
         cards_toplay_zu = ''
         for i in cards_toplay:
             cards_toplay_zu = cards_toplay_zu + self.number2card[i] + ','
-        if notTry:
+        if test:
             print(self.position+' 出'+cards_toplay_zu)
         self.cards = list(set(self.cards) - set(cards_toplay))
         if len(self.cards)==0:
-            if notTry:
+            if test:
                 print(self.position+" wins.")
             return True
         self.cards.sort(reverse=False)

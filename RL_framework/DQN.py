@@ -7,7 +7,7 @@ import numpy as np
 from extra.utils import trans_vector, get_cards_small_extend, calculate_score
 
 # config
-from extra.config import original_vec, LR, EPSILON, MEMORY_CAPACITY, BATCH_SIZE
+from extra.config import original_vec, LR, EPSILON, MEMORY_CAPACITY, BATCH_SIZE, GAMMA
 
 
 class QNet(nn.Module):
@@ -47,12 +47,13 @@ class DQN(object):
         #     self.eval_net, self.target_net = Net(), Net()
         #     self.learn_step_counter = 0  # for target updating
         #
-        self.eval_net = QNet()
+        self.eval_net, self.target_net = QNet(), QNet()
         self.eval_net.cuda()
+        self.target_net.cuda()
         self.MEMORY_CAPACITY = 2000
         self.memory_counter = 0  # for storing memory
         self.memory_counter_ = 0  # for storing memory
-        self.memory = np.zeros((self.MEMORY_CAPACITY, 211))  # initialize memory
+        self.memory = np.zeros((self.MEMORY_CAPACITY, 277))  # initialize memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
         self.loss_func = nn.MSELoss()
         self.loss_func.cuda()
@@ -68,25 +69,30 @@ class DQN(object):
         # sample batch transitions
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
         b_memory = self.memory[sample_index, :]
+        # if len(b_memory) < BATCH_SIZE:
+        #     return
         # get s,a,r,s_ according to positions
 
-        b_s = torch.FloatTensor(b_memory[:, 144:-1])
-        b_a = torch.FloatTensor(b_memory[:, 1:144])
+        b_s = torch.FloatTensor(b_memory[:, 1+143:1+143+66])
+        b_s_ = torch.FloatTensor(b_memory[:, 1+143+66:1+143+66+66])
+        b_a = torch.FloatTensor(b_memory[:, 1:1+143])
         b_r = torch.FloatTensor(b_memory[:, -1])
 
         input = torch.cat((b_a, b_s), 1).cuda()
+        input_ = torch.cat((b_a, b_s_), 1).cuda()
 
         # double Q-learning for TD methods setting, useless in MC methods
         # q_eval w.r.t the action in experience
         # q_eval = self.eval_net(b_s).gather(1.0, b_a)  # shape (batch, 1)
         #
-
         q_eval = self.eval_net(input).squeeze()  # shape (batch, 1)
+        q_next = self.target_net(input_).squeeze()
         # double Q-learning for TD methods setting, useless in MC methods
         # q_next = self.target_net(b_s_).detach()     # detach from graph, don't backpropagate
         # q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)   # shape (batch, 1)
         #
-        q_target = b_r.cuda()
+        # q_target = b_r.cuda()
+        q_target = b_r.cuda() + GAMMA * q_next
         loss = self.loss_func(q_eval, q_target)
 
         self.optimizer.zero_grad()
@@ -130,7 +136,7 @@ class DQN(object):
                                         next_next_player_cards_used, cards_left, status), axis=0)
                 input = torch.from_numpy(input).float().cuda()
                 # temp = self.eval_net(input)
-                temp = self.eval_net.forward(input)
+                temp = self.eval_net(input)
                 if temp >= biggest_temp:
                     biggest_w = w
                     biggest_p = p
@@ -147,33 +153,20 @@ class DQN(object):
         return action_cards
 
     # 每次出牌结束，存储当时的局面s和出牌a, 和 ABC的位置, 每局结束时, 根据 ABC 的位置去分配奖励reward
-    def store_transition(self, player, action_cards):
-        original_vec = np.array([4,4,4,4,4,4,4,4,4,4,4,3,1])
-        cards_small = trans_vector(action_cards)
-
-        # get info from current player.
-        cards_used = player.cards_used
-        cards_inhand = player.cards
-        next_player = player.get_next_player()
-        next_next_player = next_player.get_next_player()
-        next_cards_used = next_player.cards_used
-        next_next_cards_used = next_next_player.cards_used
-        current_position = player.position
-        status = player.status
+    def store_transition(self, player, action_cards, current_state):
         pattern = player.current_pattern
-
-        cards_left = original_vec - cards_used - next_cards_used - next_next_cards_used - cards_small
+        cards_small_extend = get_cards_small_extend(action_cards, pattern)
+        current_position = player.position
         if current_position == 'player_A':
             position = 1
         if current_position == 'player_B':
             position = 2
         if current_position == 'player_C':
             position = 3
-        cards_small_extend = get_cards_small_extend(action_cards, pattern)
-        cards_inhand_small = trans_vector(cards_inhand)
         position = np.array([position])
-        flag = np.array([0])
-        input = np.concatenate((position, cards_small_extend, cards_inhand_small, cards_used, next_cards_used, next_next_cards_used, cards_left, status, flag), axis=0)
+        next_state = player.get_state()
+        r_placeholder = np.array([0])
+        input = np.concatenate((position,cards_small_extend,current_state,next_state,r_placeholder),axis=0)
         # replace the old memory with new memory
         index = self.memory_counter % MEMORY_CAPACITY
         self.memory[index, :] = input

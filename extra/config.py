@@ -1,17 +1,20 @@
 import numpy as np
 
-Select_LongestPattern_probability = 1
 LR = 0.01
 EPSILON = 0.6
 MEMORY_CAPACITY = 2000
 count_episode = 0
+test_num = 10
 BATCH_SIZE = 512
+GAMMA = 0.999
 
 # iteration numbers during each output
 ite_num = 500
 
 # Output Filename
-saved_file = 'out_3layer.txt'
+model_file = 'save/RL.pkl'
+test_file = 'save/test_result.txt'
+epoch_record = 'save/epoch_record.txt'
 
 original_vec = np.array([4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 1])
 empty_vec = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
