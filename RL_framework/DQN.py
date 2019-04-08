@@ -7,23 +7,23 @@ import numpy as np
 from extra.utils import trans_vector, get_cards_small_extend, calculate_score
 
 # config
-from extra.config import original_vec, LR, EPSILON, MEMORY_CAPACITY, BATCH_SIZE, GAMMA
+from extra.config import original_vec, LR, MEMORY_CAPACITY, BATCH_SIZE, GAMMA
 
 
 class QNet(nn.Module):
     def __init__(self, ):
         super(QNet, self).__init__()
-        self.fc1 = nn.Linear(209, 196)
+        self.fc1 = nn.Linear(209, 512)
         self.fc1.weight.data.normal_(0, 0.1)  # initialization
-        self.fc2 = nn.Linear(196, 179)
+        self.fc2 = nn.Linear(512, 256)
         self.fc2.weight.data.normal_(0, 0.1)  # initialization
-        # self.fc3 = nn.Linear(179, 160)
-        # self.fc3.weight.data.normal_(0, 0.1)  # initialization
+        self.fc3 = nn.Linear(256, 128)
+        self.fc3.weight.data.normal_(0, 0.1)  # initialization
         # self.fc4 = nn.Linear(160, 150)
         # self.fc4.weight.data.normal_(0, 0.1)  # initialization
         # self.fc5 = nn.Linear(150, 120)
         # self.fc5.weight.data.normal_(0, 0.1)  # initialization
-        self.out = nn.Linear(179, 1)
+        self.out = nn.Linear(128, 1)
         self.out.weight.data.normal_(0, 0.1)  # initialization
 
     def forward(self, x):
@@ -31,8 +31,8 @@ class QNet(nn.Module):
         x = F.relu(x)
         x = self.fc2(x)
         x = F.relu(x)
-        # x = self.fc3(x)
-        # x = F.relu(x)
+        x = self.fc3(x)
+        x = F.relu(x)
         # x = self.fc4(x)
         # x = F.relu(x)
         # x = self.fc5(x)
@@ -50,7 +50,7 @@ class DQN(object):
         self.eval_net, self.target_net = QNet(), QNet()
         self.eval_net.cuda()
         self.target_net.cuda()
-        self.MEMORY_CAPACITY = 2000
+        self.MEMORY_CAPACITY = MEMORY_CAPACITY
         self.memory_counter = 0  # for storing memory
         self.memory_counter_ = 0  # for storing memory
         self.memory = np.zeros((self.MEMORY_CAPACITY, 277))  # initialize memory
@@ -98,16 +98,9 @@ class DQN(object):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        return loss.item(), q_eval.data.cpu().numpy().mean()
 
-    def choose_action(self, player, ways_toplay=[]):
-
-        # get info from current player
-        current_player_cards = player.cards
-        current_player_cards_used = player.cards_used
-        next_player = player.get_next_player()
-        next_next_player = next_player.get_next_player()
-        next_player_cards_used = next_player.cards_used
-        next_next_player_cards_used = next_next_player.cards_used
+    def choose_action(self, player, EPSILON, ways_toplay=[]):
         status = player.status
         if status == np.array([0]):
             pattern_to_playcards = [player.current_pattern]
@@ -128,14 +121,10 @@ class DQN(object):
 
             lw = len(ways_toplay)
             for w in range(lw):
-                way_to_play_small_extend = get_cards_small_extend(ways_toplay[w], pattern_to_playcards[p])
-                current_player_cards_small = trans_vector(current_player_cards)
-                cards_left = original_vec - current_player_cards_used - next_player_cards_used - next_next_player_cards_used - current_player_cards_small
-                input = np.concatenate((way_to_play_small_extend, current_player_cards_small,
-                                        current_player_cards_used, next_player_cards_used,
-                                        next_next_player_cards_used, cards_left, status), axis=0)
+                action_small_extend = get_cards_small_extend(ways_toplay[w], pattern_to_playcards[p])
+                player_state = player.get_state()
+                input = np.concatenate((action_small_extend, player_state), axis=0)
                 input = torch.from_numpy(input).float().cuda()
-                # temp = self.eval_net(input)
                 temp = self.eval_net(input)
                 if temp >= biggest_temp:
                     biggest_w = w
@@ -219,18 +208,24 @@ class DQN(object):
             index = self.memory_counter_ % MEMORY_CAPACITY
             temp = (index + i) % MEMORY_CAPACITY
 
-            #赢的人记0分，输的人剩余多少牌输多少分
-            winner_score = 0
+            #赢的人记分，输的人剩余多少牌输多少分
+            winner_score = 1
             loser_one_cards_small = trans_vector(loser_one_cards)
             loser_two_cards_small = trans_vector(loser_two_cards)
             loser_one_score = calculate_score(loser_one_cards_small)
             loser_two_score = calculate_score(loser_two_cards_small)
 
             # 将炸弹的分与剩牌失去分共同作为当局reward
+            # if self.memory[temp, 0] == winner_position:
+            #     self.memory[temp, -1] = (winner_score + winner_boom_success*20 - loser_one_boom_success*10 - loser_two_boom_success*10)
+            # elif self.memory[temp, 0] == loser_one_position:
+            #     self.memory[temp, -1] = (loser_one_score + loser_one_boom_success*20 - loser_two_boom_success*10 - winner_boom_success*10)
+            # elif self.memory[temp, 0] == loser_two_position:
+            #     self.memory[temp, -1] = (loser_two_score + loser_two_boom_success*20 - winner_boom_success*10 - loser_one_boom_success*10)
             if self.memory[temp, 0] == winner_position:
-                self.memory[temp, -1] = (winner_score + winner_boom_success*20 - loser_one_boom_success*10 - loser_two_boom_success*10)
+                self.memory[temp, -1] = winner_score
             elif self.memory[temp, 0] == loser_one_position:
-                self.memory[temp, -1] = (loser_one_score + loser_one_boom_success*20 - loser_two_boom_success*10 - winner_boom_success*10)
+                self.memory[temp, -1] = loser_one_score
             elif self.memory[temp, 0] == loser_two_position:
-                self.memory[temp, -1] = (loser_two_score + loser_two_boom_success*20 - winner_boom_success*10 - loser_one_boom_success*10)
+                self.memory[temp, -1] = loser_two_score
         self.memory_counter_ = self.memory_counter

@@ -4,7 +4,7 @@ import numpy as np
 from extra.utils import divide_cards, trans_vector
 from GameEnv.RunFastGame import RunfastGameEnv
 from RL_framework.DQN import DQN
-from extra.config import ite_num, model_file, EPSILON, count_episode, epoch_record
+from extra.config import ite_num, model_file, EPSILON, count_episode, episode_record, epsilon_record
 
 if __name__ == '__main__':
     if os.path.exists(model_file):
@@ -13,9 +13,12 @@ if __name__ == '__main__':
     else:
         RL = DQN()
         print('No model file, create a new DQN model.\n')
-    if os.path.exists(epoch_record):
-        with open(epoch_record, 'r') as f:
+    if os.path.exists(episode_record):
+        with open(episode_record, 'r') as f:
             count_episode = int(f.read())
+    if os.path.exists(epsilon_record):
+        with open(epsilon_record, 'r') as f:
+            EPSILON = float(f.read())
     player_A = RunfastGameEnv()
     player_B = RunfastGameEnv()
     player_C = RunfastGameEnv()
@@ -36,13 +39,6 @@ if __name__ == '__main__':
         player_A.cards_used  = np.zeros(13)
         player_B.cards_used = np.zeros(13)
         player_C.cards_used = np.zeros(13)
-
-        ### save the result every 100,000 episodes
-        if count_episode % ite_num == 0:
-            torch.save(RL, model_file)
-            print("##### Epoch: %s. #####" % count_episode)
-            with open(epoch_record, 'w') as f:
-                f.write(str(count_episode))
         player_A.set_cards(a)
         player_B.set_cards(b)
         player_C.set_cards(c)
@@ -76,7 +72,7 @@ if __name__ == '__main__':
                 biggestcards = []
 
                 # choose Action from State.
-                action_cards = RL.choose_action(current_player)
+                action_cards = RL.choose_action(current_player, EPSILON)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
@@ -111,7 +107,7 @@ if __name__ == '__main__':
                     current_player = current_player.get_next_player()
                 else:
                     current_player.status = np.array([0])
-                    action_cards = RL.choose_action(current_player, ways_toplay=ways_toplay)
+                    action_cards = RL.choose_action(current_player, EPSILON, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
 
@@ -140,12 +136,18 @@ if __name__ == '__main__':
 
 
         if RL.memory_counter % RL.MEMORY_CAPACITY == 0 :
-            RL.learn()
-
+            loss_value, q_value = RL.learn()
+            # if count_episode % ite_num == 0 and count_episode != 0:
+            torch.save(RL, model_file)
+            print("Episode: %s; Loss: %s; Q: %s; eps: %s" % (count_episode, loss_value, q_value, EPSILON))
+            with open(episode_record, 'w') as f:
+                f.write(str(count_episode))
+            with open(epsilon_record, 'w') as f:
+                f.write(str(EPSILON))
 
 
         # print('是否继续游戏，请输入y或者n：')
-        if count_episode <= 1000000:
-            start_game = 'y'
-        if count_episode % 120000 == 0 and EPSILON <= 0.9:
+        # if count_episode <= 1000000:
+        #     start_game = 'y'
+        if count_episode % 20000 == 0 and EPSILON <= 1:
             EPSILON = EPSILON + 0.01

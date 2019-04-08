@@ -68,7 +68,7 @@ if __name__ == '__main__':
                 biggestcards = []
 
                 # choose Action from State.
-                action_cards = RL.choose_action(current_player)
+                action_cards = RL.choose_action(current_player,1)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
                     current_player = current_player.get_next_player()
                 else:
                     current_player.status = np.array([0])
-                    action_cards = RL.choose_action(current_player, ways_toplay=ways_toplay)
+                    action_cards = RL.choose_action(current_player, 1, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
 

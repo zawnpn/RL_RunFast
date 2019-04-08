@@ -223,4 +223,4 @@ def calculate_score(cards_left):
         score = (-2) * cards_number
     else:
         score = -cards_number
-    return score
+    return score/10
