@@ -4,9 +4,18 @@ import numpy as np
 
 from extra.config import empty_vec
 
-if torch.cuda.is_available():
-    torch.cuda.set_device(0)
+# if torch.cuda.is_available():
+#     torch.cuda.set_device(0)
 
+
+def avg_score(a, b, c):
+    m = np.mean([a, b, c])
+    s_max = np.max([a, b, c])
+    s_min = np.min([a, b, c])
+    a = (a - m) / (s_max - s_min)
+    b = (b - m) / (s_max - s_min)
+    c = (c - m) / (s_max - s_min)
+    return a, b, c
 
 # 发牌
 def divide_cards():
@@ -217,10 +226,15 @@ def get_cards_small_extend(cards, pattern):
 # 牌局介绍，根据剩牌计算输分作为reward
 def calculate_score(cards_left):
     cards_number = cards_left.sum()
-    if cards_number == 1:
-        score = np.array([0])
-    elif cards_number == 16:
-        score = (-2) * cards_number
+    # if cards_number == 1:
+    #     score = np.array([0])
+    # elif cards_number == 16:
+    #     score = (-2) * cards_number
+    # else:
+    #     score = -cards_number
+    # score = 0 - cards_number
+    if cards_number > 0:
+        score = -1
     else:
-        score = -cards_number
-    return score/10
+        score = 0
+    return score

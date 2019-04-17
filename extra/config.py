@@ -1,18 +1,22 @@
 import numpy as np
 
-LR = 0.0005
+LR = 0.001
 EPSILON = 0.6
-MEMORY_CAPACITY = 2000
+const_EPSILON = 0.3
+MEMORY_CAPACITY = 1000
 count_episode = 0
-test_num = 10
-BATCH_SIZE = 256
+test_num = 1000
+BATCH_SIZE = 128
 GAMMA = 0.99
 
 # iteration numbers during each output
 ite_num = 500
 
 # Output Filename
-model_file = 'save/RL.pkl'
+model_A_file = 'save/RLA.pkl'
+model_B_file = 'save/RLB.pkl'
+model_C_file = 'save/RLC.pkl'
+early_model_file = 'save/RL_early.pkl'
 test_file = 'save/test_result.txt'
 episode_record = 'save/episode_record.txt'
 epsilon_record = 'save/epsilon_record.txt'

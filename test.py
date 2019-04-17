@@ -2,11 +2,13 @@ import sys
 import numpy as np
 import torch
 from GameEnv.RunFastGame import RunfastGameEnv
-from extra.config import test_file, model_file, test_num
+from extra.config import test_file, model_A_file, model_B_file, model_C_file, test_num
 from extra.utils import divide_cards, trans_vector
 
 if __name__ == '__main__':
-    RL = torch.load(model_file)
+    RLA = torch.load(model_A_file)
+    RLB = torch.load(model_B_file)
+    RLC = torch.load(model_C_file)
     player_A = RunfastGameEnv()
     player_B = RunfastGameEnv()
     player_C = RunfastGameEnv()
@@ -20,6 +22,9 @@ if __name__ == '__main__':
     savedStdout = sys.stdout # save output straem
     file = open(test_file, 'w')
     sys.stdout = file
+    awc = 0  # a_wins_count
+    bwc = 0
+    cwc = 0
     for test_count in range(test_num):
         a, b, c = divide_cards()
         player_A.cards_used  = np.zeros(13)
@@ -29,7 +34,7 @@ if __name__ == '__main__':
         player_A.set_cards(a)
         player_B.set_cards(b)
         player_C.set_cards(c)
-        #选择初始玩家，黑桃三出头
+        # 选择初始玩家，黑桃三出头
         player_A.boom_success = 0
         player_B.boom_success = 0
         player_C.boom_success = 0
@@ -68,7 +73,12 @@ if __name__ == '__main__':
                 biggestcards = []
 
                 # choose Action from State.
-                action_cards = RL.choose_action(current_player,1)
+                if current_player.position == 'player_A':
+                    action_cards = RLA.choose_action(current_player,0.99)
+                elif current_player.position == 'player_B':
+                    action_cards = RLB.choose_action(current_player,0.99)
+                elif current_player.position == 'player_C':
+                    action_cards = RLC.choose_action(current_player,0.99)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
@@ -88,6 +98,12 @@ if __name__ == '__main__':
                             current_player.boom_success = current_player.boom_success + 1
                 ## Q-learning, calculate reward and add reward
                 if isEnd:
+                    if len(player_A.cards) == 0:
+                        awc += 1
+                    elif len(player_B.cards) == 0:
+                        bwc += 1
+                    elif len(player_C.cards) ==0:
+                        cwc += 1
                     print("player_A remains " + str(len(player_A.cards)) + " cards.")
                     print("player_B remains " + str(len(player_B.cards)) + " cards.")
                     print("player_C remains " + str(len(player_C.cards)) + " cards.")
@@ -104,7 +120,13 @@ if __name__ == '__main__':
                     current_player = current_player.get_next_player()
                 else:
                     current_player.status = np.array([0])
-                    action_cards = RL.choose_action(current_player, 1, ways_toplay=ways_toplay)
+                    # choose Action from State.
+                    if current_player.position == 'player_A':
+                        action_cards = RLA.choose_action(current_player, 0.99, ways_toplay=ways_toplay)
+                    elif current_player.position == 'player_B':
+                        action_cards = RLB.choose_action(current_player, 0.99, ways_toplay=ways_toplay)
+                    elif current_player.position == 'player_C':
+                        action_cards = RLC.choose_action(current_player, 0.99, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
 
@@ -124,6 +146,12 @@ if __name__ == '__main__':
                     ## Q-learning, calculate reward and add reward
 
                     if isEnd:
+                        if len(player_A.cards) == 0:
+                            awc += 1
+                        elif len(player_B.cards) == 0:
+                            bwc += 1
+                        elif len(player_C.cards) == 0:
+                            cwc += 1
                         print("player_A remains " + str(len(player_A.cards)) + " cards.")
                         print("player_B remains " + str(len(player_B.cards)) + " cards.")
                         print("player_C remains " + str(len(player_C.cards)) + " cards.")
@@ -131,7 +159,9 @@ if __name__ == '__main__':
 
                     else:
                         current_player = current_player.get_next_player()
-
     sys.stdout = savedStdout
     file.close()
     print('\n%s test finished.' % test_num)
+    print("A's win rate: %s/%s=%s" % (awc, test_num, awc / test_num))
+    print("B's win rate: %s/%s=%s" % (bwc, test_num, bwc / test_num))
+    print("C's win rate: %s/%s=%s" % (cwc, test_num, cwc / test_num))
