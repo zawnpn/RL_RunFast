@@ -25,6 +25,9 @@ if __name__ == '__main__':
     awc = 0  # a_wins_count
     bwc = 0
     cwc = 0
+    epsa = 0.99
+    epsb = 0
+    epsc = 0
     for test_count in range(test_num):
         a, b, c = divide_cards()
         player_A.cards_used  = np.zeros(13)
@@ -74,11 +77,11 @@ if __name__ == '__main__':
 
                 # choose Action from State.
                 if current_player.position == 'player_A':
-                    action_cards = RLA.choose_action(current_player,0.99)
+                    action_cards = RLA.choose_action(current_player,epsa)
                 elif current_player.position == 'player_B':
-                    action_cards = RLB.choose_action(current_player,0.99)
+                    action_cards = RLB.choose_action(current_player,epsb)
                 elif current_player.position == 'player_C':
-                    action_cards = RLC.choose_action(current_player,0.99)
+                    action_cards = RLC.choose_action(current_player,epsc)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
@@ -122,11 +125,11 @@ if __name__ == '__main__':
                     current_player.status = np.array([0])
                     # choose Action from State.
                     if current_player.position == 'player_A':
-                        action_cards = RLA.choose_action(current_player, 0.99, ways_toplay=ways_toplay)
+                        action_cards = RLA.choose_action(current_player, epsa, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_B':
-                        action_cards = RLB.choose_action(current_player, 0.99, ways_toplay=ways_toplay)
+                        action_cards = RLB.choose_action(current_player, epsb, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_C':
-                        action_cards = RLC.choose_action(current_player, 0.99, ways_toplay=ways_toplay)
+                        action_cards = RLC.choose_action(current_player, epsc, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
 

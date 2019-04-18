@@ -54,6 +54,7 @@ if __name__ == '__main__':
         is_playing = False
     count_epoch = 0
     Q_A, Q_B, Q_C = 0, 0, 0
+    awin, bwin, cwin = 0, 0, 0
     while(is_playing):
         a, b, c = divide_cards()
         player_A.cards_used  = np.zeros(13)
@@ -95,9 +96,11 @@ if __name__ == '__main__':
                 if current_player.position == 'player_A':
                     action_cards = RLA.choose_action(current_player, EPSILON)
                 elif current_player.position == 'player_B':
-                    action_cards = RLB.choose_action(current_player, np.random.uniform(EPSILON / 3, EPSILON / 2))
+                    # action_cards = RLB.choose_action(current_player, np.random.uniform(EPSILON / 1.5, EPSILON))
+                    action_cards = RLB.choose_action(current_player, EPSILON/2)
                 elif current_player.position == 'player_C':
-                    action_cards = RLC.choose_action(current_player, const_EPSILON)
+                    action_cards = RLC.choose_action(current_player, 0)
+                    # action_cards = RLC.choose_action(current_player, 0)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
@@ -121,6 +124,12 @@ if __name__ == '__main__':
                     if len(biggestcards) == 4:
                         if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                             current_player.boom_success = current_player.boom_success + 1
+                    if current_player.position == 'player_A':
+                        awin += 1
+                    elif current_player.position == 'player_B':
+                        bwin += 1
+                    elif current_player.position == 'player_C':
+                        cwin += 1
                     RLA.add_reward(current_player)
                     RLB.add_reward(current_player)
                     RLC.add_reward(current_player)
@@ -142,9 +151,11 @@ if __name__ == '__main__':
                     if current_player.position == 'player_A':
                         action_cards = RLA.choose_action(current_player, EPSILON, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_B':
-                        action_cards = RLB.choose_action(current_player, np.random.uniform(EPSILON / 3, EPSILON / 2), ways_toplay=ways_toplay)
+                        # action_cards = RLB.choose_action(current_player, np.random.uniform(EPSILON / 1.5, EPSILON), ways_toplay=ways_toplay)
+                        action_cards = RLB.choose_action(current_player, EPSILON/2, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_C':
-                        action_cards = RLC.choose_action(current_player, const_EPSILON, ways_toplay=ways_toplay)
+                        action_cards = RLC.choose_action(current_player, 0, ways_toplay=ways_toplay)
+                        # action_cards = RLC.choose_action(current_player, 0, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
 
@@ -167,6 +178,12 @@ if __name__ == '__main__':
                         if len(biggestcards) == 4:
                             if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                                 current_player.boom_success = current_player.boom_success + 1
+                        if current_player.position == 'player_A':
+                            awin += 1
+                        elif current_player.position == 'player_B':
+                            bwin += 1
+                        elif current_player.position == 'player_C':
+                            cwin += 1
                         RLA.add_reward(current_player)
                         RLB.add_reward(current_player)
                         RLC.add_reward(current_player)
@@ -200,6 +217,11 @@ if __name__ == '__main__':
                 'Q_B': Q_B,
                 'Q_C': Q_C,
             }, count_epoch)
+            writer.add_scalars('Win_Rate', {
+                'R_A': awin / count_episode,
+                'R_B': bwin / count_episode,
+                'R_C': cwin / count_episode,
+            }, count_epoch)
             # if count_episode % ite_num == 0 and count_episode != 0:
             torch.save(RLA, model_A_file)
             torch.save(RLB, model_B_file)
@@ -214,5 +236,5 @@ if __name__ == '__main__':
         # print('是否继续游戏，请输入y或者n：')
         # if count_episode <= 1000000:
         #     start_game = 'y'
-        if count_episode % 10000 == 0 and EPSILON < 0.99:
+        if count_episode % 3000 == 0 and EPSILON < 0.99:
             EPSILON = EPSILON + 0.01
