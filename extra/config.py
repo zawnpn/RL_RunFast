@@ -2,10 +2,10 @@ import numpy as np
 
 LR = 0.001
 EPSILON = 0.6
-const_EPSILON = 0.2
+const_EPSILON = 0.3
 MEMORY_CAPACITY = 1000
 count_episode = 0
-test_num = 1000
+test_num = 100
 BATCH_SIZE = 128
 GAMMA = 0.99
 

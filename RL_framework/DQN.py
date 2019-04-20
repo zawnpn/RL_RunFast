@@ -14,26 +14,32 @@ from extra.config import original_vec, LR, MEMORY_CAPACITY, BATCH_SIZE, GAMMA
 class QNet(nn.Module):
     def __init__(self, ):
         super(QNet, self).__init__()
-        self.fc1 = nn.Linear(209, 32)
+        self.fc1 = nn.Linear(209, 256)
         self.fc1.weight.data.normal_(0, 0.1)  # initialization
-        # self.fc2 = nn.Linear(35, 6)
-        # self.fc2.weight.data.normal_(-0.2, 0.2)  # initialization
-        # self.fc3 = nn.Linear(256, 128)
-        # self.fc3.weight.data.normal_(0, 0.1)  # initialization
+        self.fc2 = nn.Linear(256, 128)
+        self.fc2.weight.data.normal_(0, 0.1)  # initialization
+        self.fc3 = nn.Linear(128, 64)
+        self.fc3.weight.data.normal_(0, 0.1)  # initialization
         # self.fc4 = nn.Linear(160, 150)
         # self.fc4.weight.data.normal_(0, 0.1)  # initialization
         # self.fc5 = nn.Linear(150, 120)
         # self.fc5.weight.data.normal_(0, 0.1)  # initialization
-        self.out = nn.Linear(32, 1)
+        self.out = nn.Linear(64, 1)
         self.out.weight.data.normal_(0, 0.1)  # initialization
 
     def forward(self, x):
+
         x = self.fc1(x)
+        x = F.dropout(x, p=0.5)
         x = F.relu(x)
-        # x = self.fc2(x)
-        # x = F.relu(x)
-        # x = self.fc3(x)
-        # x = F.relu(x)
+
+        x = self.fc2(x)
+        x = F.dropout(x, p=0.5)
+        x = F.relu(x)
+
+        x = self.fc3(x)
+        x = F.dropout(x, p=0.5)
+        x = F.relu(x)
         # x = self.fc4(x)
         # x = F.relu(x)
         # x = self.fc5(x)

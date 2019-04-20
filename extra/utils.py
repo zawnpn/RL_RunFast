@@ -232,9 +232,9 @@ def calculate_score(cards_left):
     #     score = (-2) * cards_number
     # else:
     #     score = -cards_number
-    score = 0 - cards_number**2
-    # if cards_number > 0:
-    #     score = -1
-    # else:
-    #     score = 0
-    return score/10
+    # score = 0 - cards_number**2
+    if cards_number > 0:
+        score = -1
+    else:
+        score = 0
+    return score
