@@ -19,7 +19,7 @@ if __name__ == '__main__':
     player_B.update_position('player_B')
     player_C.update_position('player_C')
 
-    savedStdout = sys.stdout # save output straem
+    savedStdout = sys.stdout  # save output straem
     file = open(test_file, 'w')
     sys.stdout = file
     awc = 0  # a_wins_count
@@ -30,10 +30,10 @@ if __name__ == '__main__':
     epsc = 0
     for test_count in range(test_num):
         a, b, c = divide_cards()
-        player_A.cards_used  = np.zeros(13)
+        player_A.cards_used = np.zeros(13)
         player_B.cards_used = np.zeros(13)
         player_C.cards_used = np.zeros(13)
-        print("Test epoch: " + str(test_count+1) )
+        print("Test epoch: " + str(test_count + 1))
         player_A.set_cards(a)
         player_B.set_cards(b)
         player_C.set_cards(c)
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
         current_pattern = 0
         biggestcards = []
-        while(isEnd==False ):
+        while (isEnd == False):
 
             if current_player == privious_player:
                 current_player.status = np.array([1])
@@ -77,18 +77,18 @@ if __name__ == '__main__':
 
                 # choose Action from State.
                 if current_player.position == 'player_A':
-                    action_cards = RLA.choose_action(current_player,epsa)
+                    action_cards = RLA.choose_action(current_player, epsa)
                 elif current_player.position == 'player_B':
-                    action_cards = RLB.choose_action(current_player,epsb)
+                    action_cards = RLB.choose_action(current_player, epsb)
                 elif current_player.position == 'player_C':
-                    action_cards = RLC.choose_action(current_player,epsc)
+                    action_cards = RLC.choose_action(current_player, epsc)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
                 current_player.cards_used = current_player.cards_used + small_cards
                 biggestcards = action_cards
-                if len(biggestcards)==4 and int(biggestcards[0]/4)==int(biggestcards[3]/4):
-                    if int(biggestcards[0]/4)==int(biggestcards[3]/4) and (biggestcards[0]/4<11):
+                if len(biggestcards) == 4 and int(biggestcards[0] / 4) == int(biggestcards[3] / 4):
+                    if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                         current_player.current_pattern = 3
 
                 isEnd = current_player.play_cards(action_cards, test=True)
@@ -105,7 +105,7 @@ if __name__ == '__main__':
                         awc += 1
                     elif len(player_B.cards) == 0:
                         bwc += 1
-                    elif len(player_C.cards) ==0:
+                    elif len(player_C.cards) == 0:
                         cwc += 1
                     print("player_A remains " + str(len(player_A.cards)) + " cards.")
                     print("player_B remains " + str(len(player_B.cards)) + " cards.")
@@ -118,7 +118,7 @@ if __name__ == '__main__':
             else:
                 current_player.current_pattern = current_pattern
                 ways_toplay = current_player.search_play_methods(current_pattern, biggestcards)
-                if len(ways_toplay)==0:
+                if len(ways_toplay) == 0:
                     print(current_player.get_position() + '要不起！')
                     current_player = current_player.get_next_player()
                 else:

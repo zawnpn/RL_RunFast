@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-
 # utils
 from extra.utils import trans_vector, get_cards_small_extend, calculate_score, avg_score
 
@@ -28,7 +27,6 @@ class QNet(nn.Module):
         self.out.weight.data.normal_(0, 0.1)  # initialization
 
     def forward(self, x):
-
         x = self.fc1(x)
         x = F.dropout(x, p=0.5)
         x = F.relu(x)
@@ -87,9 +85,9 @@ class DQN(object):
         #     return
         # get s,a,r,s_ according to positions
 
-        b_s = torch.FloatTensor(b_memory[:, 1+143:1+143+66])
-        b_s_ = torch.FloatTensor(b_memory[:, 1+143+66:1+143+66+66])
-        b_a = torch.FloatTensor(b_memory[:, 1:1+143])
+        b_s = torch.FloatTensor(b_memory[:, 1 + 143:1 + 143 + 66])
+        b_s_ = torch.FloatTensor(b_memory[:, 1 + 143 + 66:1 + 143 + 66 + 66])
+        b_a = torch.FloatTensor(b_memory[:, 1:1 + 143])
         b_r = torch.FloatTensor(b_memory[:, -1])
 
         input = torch.cat((b_a, b_s), 1).cuda()
@@ -169,7 +167,7 @@ class DQN(object):
         position = np.array([position])
         next_state = player.get_state()
         r_placeholder = np.array([0])
-        input = np.concatenate((position,cards_small_extend,current_state,next_state,r_placeholder),axis=0)
+        input = np.concatenate((position, cards_small_extend, current_state, next_state, r_placeholder), axis=0)
         # replace the old memory with new memory
         index = self.memory_counter % MEMORY_CAPACITY
         self.memory[index, :] = input
@@ -222,13 +220,12 @@ class DQN(object):
             index = self.memory_counter_ % MEMORY_CAPACITY
             temp = (index + i) % MEMORY_CAPACITY
 
-            #赢的人记分，输的人剩余多少牌输多少分
+            # 赢的人记分，输的人剩余多少牌输多少分
             loser_one_cards_small = trans_vector(loser_one_cards)
             loser_two_cards_small = trans_vector(loser_two_cards)
             loser_one_score = calculate_score(loser_one_cards_small)
             loser_two_score = calculate_score(loser_two_cards_small)
             winner_score = 0
-
 
             # 归一化？
             # s_w, s_l1, s_l2 = avg_score(winner_score, loser_one_score, loser_two_score)

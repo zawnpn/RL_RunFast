@@ -3,10 +3,10 @@ import numpy as np
 LR = 0.001
 EPSILON = 0.6
 const_EPSILON = 0.3
-MEMORY_CAPACITY = 1000
+MEMORY_CAPACITY = 2000
 count_episode = 0
-test_num = 100
-BATCH_SIZE = 128
+test_num = 1000
+BATCH_SIZE = 256
 GAMMA = 0.99
 
 # iteration numbers during each output

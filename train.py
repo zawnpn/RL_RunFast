@@ -4,9 +4,9 @@ import numpy as np
 from extra.utils import divide_cards, trans_vector
 from GameEnv.RunFastGame import RunfastGameEnv
 from RL_framework.DQN import DQN, QNet
-from extra.config import model_A_file, model_B_file, model_C_file, EPSILON, const_EPSILON, count_episode, episode_record, epsilon_record
+from extra.config import model_A_file, model_B_file, model_C_file, EPSILON, const_EPSILON, count_episode, \
+    episode_record, epsilon_record
 from tensorboardX import SummaryWriter
-
 
 if __name__ == '__main__':
     if os.path.exists(model_A_file):
@@ -55,15 +55,16 @@ if __name__ == '__main__':
     count_epoch = 0
     Q_A, Q_B, Q_C = 0, 0, 0
     awin, bwin, cwin = 0, 0, 0
-    while(is_playing):
+    last_episode = 0
+    while (is_playing):
         a, b, c = divide_cards()
-        player_A.cards_used  = np.zeros(13)
+        player_A.cards_used = np.zeros(13)
         player_B.cards_used = np.zeros(13)
         player_C.cards_used = np.zeros(13)
         player_A.set_cards(a)
         player_B.set_cards(b)
         player_C.set_cards(c)
-        #选择初始玩家，黑桃三出头
+        # 选择初始玩家，黑桃三出头
         player_A.boom_success = 0
         player_B.boom_success = 0
         player_C.boom_success = 0
@@ -82,7 +83,7 @@ if __name__ == '__main__':
         current_pattern = 0
         biggestcards = []
         current_state = current_player.get_state()
-        while(isEnd==False ):
+        while (isEnd == False):
             if current_player == privious_player:
                 current_player.status = np.array([1])
                 # record who play boom（炸弹） and boom_success+1
@@ -96,18 +97,18 @@ if __name__ == '__main__':
                 if current_player.position == 'player_A':
                     action_cards = RLA.choose_action(current_player, EPSILON)
                 elif current_player.position == 'player_B':
-                    action_cards = RLB.choose_action(current_player, np.random.uniform(EPSILON / 2, EPSILON))
+                    action_cards = RLB.choose_action(current_player, EPSILON / 2)
                     # action_cards = RLB.choose_action(current_player, EPSILON/2)
                 elif current_player.position == 'player_C':
-                    action_cards = RLC.choose_action(current_player, const_EPSILON)
+                    action_cards = RLC.choose_action(current_player, EPSILON / 3)
                     # action_cards = RLC.choose_action(current_player, 0)
 
                 # implement Action
                 small_cards = trans_vector(action_cards)
                 current_player.cards_used = current_player.cards_used + small_cards
                 biggestcards = action_cards
-                if len(biggestcards)==4 and int(biggestcards[0]/4)==int(biggestcards[3]/4):
-                    if int(biggestcards[0]/4)==int(biggestcards[3]/4) and (biggestcards[0]/4<11):
+                if len(biggestcards) == 4 and int(biggestcards[0] / 4) == int(biggestcards[3] / 4):
+                    if int(biggestcards[0] / 4) == int(biggestcards[3] / 4) and (biggestcards[0] / 4 < 11):
                         current_player.current_pattern = 3
                 if current_player.position == 'player_A':
                     RLA.store_transition(current_player, action_cards, current_state)
@@ -135,7 +136,7 @@ if __name__ == '__main__':
                     RLC.add_reward(current_player)
                 ## Q-learning, calculate reward and add reward
                 if isEnd:
-                    count_episode = count_episode+1
+                    count_episode = count_episode + 1
                     break
                 else:
                     current_player = current_player.get_next_player()
@@ -143,7 +144,7 @@ if __name__ == '__main__':
             else:
                 current_player.current_pattern = current_pattern
                 ways_toplay = current_player.search_play_methods(current_pattern, biggestcards)
-                if len(ways_toplay)==0:
+                if len(ways_toplay) == 0:
                     current_player = current_player.get_next_player()
                 else:
                     current_player.status = np.array([0])
@@ -151,10 +152,10 @@ if __name__ == '__main__':
                     if current_player.position == 'player_A':
                         action_cards = RLA.choose_action(current_player, EPSILON, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_B':
-                        action_cards = RLB.choose_action(current_player, np.random.uniform(EPSILON / 2, EPSILON), ways_toplay=ways_toplay)
+                        action_cards = RLB.choose_action(current_player, EPSILON / 2, ways_toplay=ways_toplay)
                         # action_cards = RLB.choose_action(current_player, EPSILON/2, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_C':
-                        action_cards = RLC.choose_action(current_player, const_EPSILON, ways_toplay=ways_toplay)
+                        action_cards = RLC.choose_action(current_player, EPSILON / 3, ways_toplay=ways_toplay)
                         # action_cards = RLC.choose_action(current_player, 0, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards
@@ -188,7 +189,7 @@ if __name__ == '__main__':
                         RLB.add_reward(current_player)
                         RLC.add_reward(current_player)
                     if isEnd:
-                        count_episode = count_episode+1
+                        count_episode = count_episode + 1
                         break
 
                     else:
@@ -218,10 +219,12 @@ if __name__ == '__main__':
                 'Q_C': Q_C,
             }, count_epoch)
             writer.add_scalars('Win_Rate', {
-                'R_A': awin / count_episode,
-                'R_B': bwin / count_episode,
-                'R_C': cwin / count_episode,
+                'R_A': awin / (count_episode - last_episode),
+                'R_B': bwin / (count_episode - last_episode),
+                'R_C': cwin / (count_episode - last_episode),
             }, count_epoch)
+            awin, bwin, cwin = 0, 0, 0
+            last_episode = count_episode
             # if count_episode % ite_num == 0 and count_episode != 0:
             torch.save(RLA, model_A_file)
             torch.save(RLB, model_B_file)
@@ -232,9 +235,8 @@ if __name__ == '__main__':
             with open(epsilon_record, 'w') as f:
                 f.write(str(EPSILON))
 
-
         # print('是否继续游戏，请输入y或者n：')
         # if count_episode <= 1000000:
         #     start_game = 'y'
-        if count_episode % 3000 == 0 and EPSILON < 0.99:
+        if count_episode % 10000 == 0 and EPSILON < 0.92:
             EPSILON = EPSILON + 0.01
