@@ -2,7 +2,7 @@ import numpy as np
 
 LR = 0.001
 EPSILON = 0.6
-const_EPSILON = 0.3
+const_EPSILON = 0.01
 MEMORY_CAPACITY = 2000
 count_episode = 0
 test_num = 1000

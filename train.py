@@ -97,10 +97,10 @@ if __name__ == '__main__':
                 if current_player.position == 'player_A':
                     action_cards = RLA.choose_action(current_player, EPSILON)
                 elif current_player.position == 'player_B':
-                    action_cards = RLB.choose_action(current_player, EPSILON / 2)
+                    action_cards = RLB.choose_action(current_player, const_EPSILON)
                     # action_cards = RLB.choose_action(current_player, EPSILON/2)
                 elif current_player.position == 'player_C':
-                    action_cards = RLC.choose_action(current_player, EPSILON / 3)
+                    action_cards = RLC.choose_action(current_player, const_EPSILON)
                     # action_cards = RLC.choose_action(current_player, 0)
 
                 # implement Action
@@ -152,10 +152,10 @@ if __name__ == '__main__':
                     if current_player.position == 'player_A':
                         action_cards = RLA.choose_action(current_player, EPSILON, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_B':
-                        action_cards = RLB.choose_action(current_player, EPSILON / 2, ways_toplay=ways_toplay)
+                        action_cards = RLB.choose_action(current_player, const_EPSILON, ways_toplay=ways_toplay)
                         # action_cards = RLB.choose_action(current_player, EPSILON/2, ways_toplay=ways_toplay)
                     elif current_player.position == 'player_C':
-                        action_cards = RLC.choose_action(current_player, EPSILON / 3, ways_toplay=ways_toplay)
+                        action_cards = RLC.choose_action(current_player, const_EPSILON, ways_toplay=ways_toplay)
                         # action_cards = RLC.choose_action(current_player, 0, ways_toplay=ways_toplay)
                     small_cards = trans_vector(action_cards)
                     current_player.cards_used = current_player.cards_used + small_cards

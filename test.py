@@ -25,7 +25,7 @@ if __name__ == '__main__':
     awc = 0  # a_wins_count
     bwc = 0
     cwc = 0
-    epsa = 0.99
+    epsa = 0.95
     epsb = 0
     epsc = 0
     for test_count in range(test_num):
