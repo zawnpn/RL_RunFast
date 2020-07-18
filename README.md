@@ -12,5 +12,5 @@
  - `GameEnv/RunFastGame.py` : environment for "Run Fast" game.
  - `RL_framework/DQN.py` : DQN algorithm code
  - `extra/` : some utils and parameters
- - `train.py` : training the AI
+ - `train.py` : train the AI
  - `test.py` : test the AI's win rate
