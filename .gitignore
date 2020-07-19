@@ -1,5 +1,7 @@
 ### Custom ###
 .idea/
+.vscode/
+runs/
 
 ### for python ###
 # Byte-compiled / optimized / DLL files

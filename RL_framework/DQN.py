@@ -19,10 +19,6 @@ class QNet(nn.Module):
         self.fc2.weight.data.normal_(0, 0.1)  # initialization
         self.fc3 = nn.Linear(128, 64)
         self.fc3.weight.data.normal_(0, 0.1)  # initialization
-        # self.fc4 = nn.Linear(160, 150)
-        # self.fc4.weight.data.normal_(0, 0.1)  # initialization
-        # self.fc5 = nn.Linear(150, 120)
-        # self.fc5.weight.data.normal_(0, 0.1)  # initialization
         self.out = nn.Linear(64, 1)
         self.out.weight.data.normal_(0, 0.1)  # initialization
 
@@ -38,29 +34,21 @@ class QNet(nn.Module):
         x = self.fc3(x)
         x = F.dropout(x, p=0.5)
         x = F.relu(x)
-        # x = self.fc4(x)
-        # x = F.relu(x)
-        # x = self.fc5(x)
-        # x = F.relu(x)
+
         actions_value = self.out(x)
         return actions_value
 
 
 class DQN(object):
     def __init__(self):
-        # double Q-learning for TD methods setting, useless in MC methods
-        #     self.eval_net, self.target_net = Net(), Net()
-        #     self.learn_step_counter = 0  # for target updating
-        #
+        # double Q-learning for TD methods setting
         self.eval_net, self.target_net = QNet(), QNet()
-        # device = ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = ("cuda" if torch.cuda.is_available() else "cpu")
         # if torch.cuda.device_count() > 1:
         #     self.eval_net = nn.DataParallel(self.eval_net, device_ids=[0, 1, 2])
         #     self.target_net = nn.DataParallel(self.target_net, device_ids=[0, 1, 2])
-        # self.eval_net.to(device)
-        # self.target_net.to(device)
-        self.eval_net.cuda()
-        self.target_net.cuda()
+        self.eval_net.to(self.device)
+        self.target_net.to(self.device)
 
         self.MEMORY_CAPACITY = MEMORY_CAPACITY
         self.memory_counter = 0  # for storing memory
@@ -68,45 +56,27 @@ class DQN(object):
         self.memory = np.zeros((self.MEMORY_CAPACITY, 277))  # initialize memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
         self.loss_func = nn.MSELoss()
-        self.loss_func.cuda()
+        self.loss_func.cuda().to(self.device)
 
     def learn(self):
-        # double Q-learning for TD methods setting, useless in MC methods
-        # target parameter update
-        # if self.learn_step_counter % TARGET_REPLACE_ITER == 0:
-        #     self.target_net.load_state_dict(self.eval_net.state_dict())
-        # self.learn_step_counter += 1
-        #
-
         # sample batch transitions
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
         b_memory = self.memory[sample_index, :]
-        # if len(b_memory) < BATCH_SIZE:
-        #     return
-        # get s,a,r,s_ according to positions
 
         b_s = torch.FloatTensor(b_memory[:, 1 + 143:1 + 143 + 66])
         b_s_ = torch.FloatTensor(b_memory[:, 1 + 143 + 66:1 + 143 + 66 + 66])
         b_a = torch.FloatTensor(b_memory[:, 1:1 + 143])
         b_r = torch.FloatTensor(b_memory[:, -1])
 
-        input = torch.cat((b_a, b_s), 1).cuda()
-        input_ = torch.cat((b_a, b_s_), 1).cuda()
+        input = torch.cat((b_a, b_s), 1).to(self.device)
+        input_ = torch.cat((b_a, b_s_), 1).to(self.device)
 
-        # double Q-learning for TD methods setting, useless in MC methods
-        # q_eval w.r.t the action in experience
-        # q_eval = self.eval_net(b_s).gather(1.0, b_a)  # shape (batch, 1)
-        #
+        # double Q-learning for TD methods setting
         q_eval = self.eval_net(input).squeeze()  # shape (batch, 1)
         q_next = self.target_net(input_).squeeze()
-        # double Q-learning for TD methods setting, useless in MC methods
-        # q_next = self.target_net(b_s_).detach()     # detach from graph, don't backpropagate
-        # q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)   # shape (batch, 1)
-        #
-        # q_target = b_r.cuda()
-        q_target = b_r.cuda() + GAMMA * q_next
+        q_target = b_r.to(self.device) + GAMMA * q_next
+        
         loss = self.loss_func(q_eval, q_target)
-
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -136,7 +106,7 @@ class DQN(object):
                 action_small_extend = get_cards_small_extend(ways_toplay[w], pattern_to_playcards[p])
                 player_state = player.get_state()
                 input = np.concatenate((action_small_extend, player_state), axis=0)
-                input = torch.from_numpy(input).float().cuda()
+                input = torch.from_numpy(input).float().to(self.device)
                 temp = self.eval_net(input)
                 if temp >= biggest_temp:
                     biggest_w = w
@@ -185,58 +155,38 @@ class DQN(object):
         loser_one_cards = next_player.cards
         loser_two_cards = next_next_player.cards
 
-        # boom_success 表示成功出炸弹次数，根据规则每次成功出炸弹，出牌者奖励为20，另外两人奖励为-10
         if winner == 'player_A':
             winner_position = 1
-            # winner_boom_success = player_A.boom_success
         elif winner == 'player_B':
             winner_position = 2
-            # winner_boom_success = player_B.boom_success
         elif winner == 'player_C':
             winner_position = 3
-            # winner_boom_success = player_C.boom_success
 
         if loser_one == 'player_A':
             loser_one_position = 1
-            # loser_one_boom_success = player_A.boom_success
         elif loser_one == 'player_B':
             loser_one_position = 2
-            # loser_one_boom_success = player_B.boom_success
         elif loser_one == 'player_C':
             loser_one_position = 3
-            # loser_one_boom_success = player_C.boom_success
 
         if loser_two == 'player_A':
             loser_two_position = 1
-            # loser_two_boom_success = player_A.boom_success
         elif loser_two == 'player_B':
             loser_two_position = 2
-            # loser_two_boom_success = player_B.boom_success
         elif loser_two == 'player_C':
             loser_two_position = 3
-            # loser_two_boom_success = player_C.boom_success
 
         for i in range(self.memory_counter - self.memory_counter_):
             index = self.memory_counter_ % MEMORY_CAPACITY
             temp = (index + i) % MEMORY_CAPACITY
 
-            # 赢的人记分，输的人剩余多少牌输多少分
+            # 输赢计分
             loser_one_cards_small = trans_vector(loser_one_cards)
             loser_two_cards_small = trans_vector(loser_two_cards)
             loser_one_score = calculate_score(loser_one_cards_small)
             loser_two_score = calculate_score(loser_two_cards_small)
             winner_score = 0
 
-            # 归一化？
-            # s_w, s_l1, s_l2 = avg_score(winner_score, loser_one_score, loser_two_score)
-
-            # 将炸弹的分与剩牌失去分共同作为当局reward
-            # if self.memory[temp, 0] == winner_position:
-            #     self.memory[temp, -1] = (winner_score + winner_boom_success*20 - loser_one_boom_success*10 - loser_two_boom_success*10)
-            # elif self.memory[temp, 0] == loser_one_position:
-            #     self.memory[temp, -1] = (loser_one_score + loser_one_boom_success*20 - loser_two_boom_success*10 - winner_boom_success*10)
-            # elif self.memory[temp, 0] == loser_two_position:
-            #     self.memory[temp, -1] = (loser_two_score + loser_two_boom_success*20 - winner_boom_success*10 - loser_one_boom_success*10)
             if self.memory[temp, 0] == winner_position:
                 self.memory[temp, -1] = winner_score
             elif self.memory[temp, 0] == loser_one_position:

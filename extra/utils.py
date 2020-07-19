@@ -4,11 +4,6 @@ import numpy as np
 
 from extra.config import empty_vec
 
-
-# if torch.cuda.is_available():
-#     torch.cuda.set_device(0)
-
-
 def avg_score(a, b, c):
     m = np.mean([a, b, c])
     s_max = np.max([a, b, c])
@@ -228,6 +223,8 @@ def get_cards_small_extend(cards, pattern):
 # 牌局介绍，根据剩牌计算输分作为reward
 def calculate_score(cards_left):
     cards_number = cards_left.sum()
+
+    # 下面注释掉的是另一种reward设置，可自行尝试修改不同的reward
     # if cards_number == 1:
     #     score = np.array([0])
     # elif cards_number == 16:
@@ -235,6 +232,7 @@ def calculate_score(cards_left):
     # else:
     #     score = -cards_number
     # score = 0 - cards_number ** 2
+    
     if cards_number > 0:
         score = -1
     else:
