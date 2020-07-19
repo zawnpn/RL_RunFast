@@ -5,7 +5,7 @@
 一款基于DQN算法的牌类游戏AI框架 / An AI framework for card games based on DQN algorithm
 
 - Game Environment: 跑得快 (A traditional Chinese card game, [Game Rule](https://baike.baidu.com/item/%E8%B7%91%E5%BE%97%E5%BF%AB/12998100))
-- Algorithm: DQN ([Introduction to RL and Deep Q Networks](https://www.tensorflow.org/agents/tutorials/0_intro_rl))
+- Algorithm: DQN ([Paper](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf), [Introduction to RL and Deep Q Networks](https://www.tensorflow.org/agents/tutorials/0_intro_rl))
 
 ## 代码结构
 
