@@ -106,3 +106,7 @@ python test.py
 ### 训练和测试
 
 在`train.py`和`test.py`中，会调用环境、算法、额外函数等，进行self-play训练和测试。训练日志会保存在`./runs/`目录，可通过tensorboard实时查看，训练模型会保存至`./save/`目录，可用于继续训练，也可通过`test.py`调用来作测试，测试结果会保存在`./save/test_result.txt`。
+
+## 其他
+
+Read more about RL_Runfast in my blog: [https://www.zhangwp.com/projects/rl_runfast/](https://www.zhangwp.com/projects/rl_runfast/)
