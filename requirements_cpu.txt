@@ -1,4 +1,4 @@
 tensorboard==2.2.2
 tensorboardX==2.1
-torch==1.5.1+cpu
+torch==1.5.1
 torchvision==0.6.1+cpu
